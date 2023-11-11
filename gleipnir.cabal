@@ -25,6 +25,7 @@ library
     hs-source-dirs: src
     exposed-modules:
         Gleipnir.Message
+        Gleipnir.Node
     build-depends:
       , base ^>=4.17.2.0
       , aeson ^>=2.2.1.0

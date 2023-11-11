@@ -10,26 +10,23 @@ import Data.Text
 import Data.Text.Encoding
 import Data.Text.IO
 
+class (FromJSON a, ToJSON a) => MessageBody a where
+  getInitNodeID :: a -> Maybe Text
+
 data Message a = Message {src :: Text, dst :: Text, body :: a}
   deriving (Show)
 
-instance (FromJSON a) => FromJSON (Message a) where
+instance (MessageBody a) => FromJSON (Message a) where
   parseJSON = withObject "Message" $ \v ->
     Message <$> v .: "src" <*> v .: "dest" <*> v .: "body"
 
-instance (ToJSON a) => ToJSON (Message a) where
+instance (MessageBody a) => ToJSON (Message a) where
   toJSON (Message src dst body) = object ["src" .= src, "dest" .= dst, "body" .= body]
 
 --------------------------------------------------------------------------------
 -- Functions
 --------------------------------------------------------------------------------
 
-load :: (FromJSON a) => Text -> Maybe (Message a)
-load input = decodeStrictText input :: ((FromJSON a) => Maybe (Message a))
-
-processRequest :: (a -> Maybe a) -> Message a -> Maybe (Message a)
-processRequest f (Message src dst body)
-  = case f body of
-     Just responseBody -> Just (Message dst src responseBody)
-     _ -> Nothing
+load :: (MessageBody a) => Text -> Maybe (Message a)
+load input = decodeStrictText input :: ((MessageBody a) => Maybe (Message a))
 

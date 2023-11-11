@@ -21,3 +21,7 @@ run-echo: gleipnir
 	@echo "+ $@"
 	@docker run --rm ${IMAGE_NAME}:${VERSION} test -w echo --bin /app/gleipnir-echo --nodes n1 --time-limit 10 --log-stderr
 
+run-unique-ids: gleipnir
+	@echo "+ $@"
+	@docker run --rm ${IMAGE_NAME}:${VERSION} test -w unique-ids --bin /app/gleipnir-unique-ids --time-limit 30 --rate 1000 --node-count 3 --availability total --nemesis partition
+
