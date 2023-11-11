@@ -1,7 +1,7 @@
 {-# LANGUAGE ConstrainedClassMethods #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Message where
+module Gleipnir.Message where
 
 import Data.Aeson
 import Data.Aeson.KeyMap (lookup)
@@ -29,8 +29,7 @@ load input = decodeStrictText input :: ((FromJSON a) => Maybe (Message a))
 
 processRequest :: (a -> Maybe a) -> Message a -> Maybe (Message a)
 processRequest f (Message src dst body)
-  | Just responseBody <- maybeResponseBody = Just (Message dst src responseBody)
-  | otherwise = Nothing
-  where
-    maybeResponseBody = f body
+  = case f body of
+     Just responseBody -> Just (Message dst src responseBody)
+     _ -> Nothing
 

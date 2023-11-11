@@ -13,7 +13,7 @@ import Data.Text.Encoding (encodeUtf8Builder)
 import Data.Text.IO (getLine, hPutStrLn)
 import Data.Unique (newUnique)
 import GHC.Generics
-import Message
+import Gleipnir.Message
 import System.IO (BufferMode (LineBuffering), hPutStr, hPutStrLn, hSetBuffering, stderr, stdout)
 
 type NodeState a = State Int a

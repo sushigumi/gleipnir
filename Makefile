@@ -19,5 +19,5 @@ gleipnir:
 
 run-echo: gleipnir
 	@echo "+ $@"
-	@docker run ${IMAGE_NAME}:${VERSION} test -w echo --bin /app/gleipnir --nodes n1 --time-limit 10 --log-stderr
+	@docker run --rm ${IMAGE_NAME}:${VERSION} test -w echo --bin /app/gleipnir-echo --nodes n1 --time-limit 10 --log-stderr
 

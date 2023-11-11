@@ -21,8 +21,24 @@ maintainer:         osushi.g@gmail.com
 -- category:
 extra-source-files: CHANGELOG.md
 
-executable gleipnir
-    main-is:          Main.hs
+library
+    hs-source-dirs: src
+    exposed-modules:
+        Gleipnir.Message
+    build-depends:
+      , base ^>=4.17.2.0
+      , aeson ^>=2.2.1.0
+      , bytestring ^>=0.11.5.2
+      , deepseq ^>=1.4.8.0
+      , mtl ^>=2.2.2
+      , text ^>=2.0.2
+      , time ^>=1.12.2
+      , unordered-containers ^>=0.2.19.1
+    default-language: Haskell2010
+
+
+executable gleipnir-echo
+    main-is:          Echo.hs
 
     -- Modules included in this executable, other than Main.
     -- other-modules:
@@ -38,7 +54,28 @@ executable gleipnir
       , text ^>=2.0.2
       , time ^>=1.12.2
       , unordered-containers ^>=0.2.19.1
-    hs-source-dirs:   src
-    other-modules:
-      Message
+      , gleipnir
+    hs-source-dirs:   executables
     default-language: Haskell2010
+
+executable gleipnir-unique-ids
+    main-is:          UniqueIDs.hs
+
+    -- Modules included in this executable, other than Main.
+    -- other-modules:
+
+    -- LANGUAGE extensions used by modules in this package.
+    -- other-extensions:
+    build-depends:
+      , base ^>=4.17.2.0
+      , aeson ^>=2.2.1.0
+      , bytestring ^>=0.11.5.2
+      , deepseq ^>=1.4.8.0
+      , mtl ^>=2.2.2
+      , text ^>=2.0.2
+      , time ^>=1.12.2
+      , unordered-containers ^>=0.2.19.1
+      , gleipnir
+    hs-source-dirs:   executables
+    default-language: Haskell2010
+

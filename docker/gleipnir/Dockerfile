@@ -7,9 +7,10 @@ RUN cabal update \
     && cabal build --only-dependencies
 
 COPY ./src/ src/
-RUN cabal build gleipnir \
-    && mv $(cabal exec which gleipnir) /app/gleipnir
+COPY ./executables executables/
+RUN cabal build gleipnir-echo \
+    && mv $(cabal exec which gleipnir-echo) /app/gleipnir-echo
 
 FROM ${MAELSTROM_IMAGE}
-COPY --from=build-image /app/gleipnir /app/gleipnir
+COPY --from=build-image /app/gleipnir* /app/
 
