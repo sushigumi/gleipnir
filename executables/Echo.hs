@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Main (main) where
@@ -31,18 +32,19 @@ instance ToJSON Body where
   toJSON (InitOk msgID inReplyTo) = object ["type" .= String "init_ok", "msg_id" .= msgID, "in_reply_to" .= inReplyTo]
   toJSON (EchoOk msgID inReplyTo echo) = object ["type" .= String "echo_ok", "msg_id" .= msgID, "in_reply_to" .= inReplyTo, "echo" .= echo]
 
-genResponseBody :: (MessageBody a) => Node a -> Body -> Body
-genResponseBody _ (Init msgID _ _) = InitOk (genReplyID msgID) msgID
-genResponseBody _ (Echo msgID echo) = EchoOk (genReplyID msgID) msgID echo
-genResponseBody _ _ = Empty
+data EchoNode = EchoNode {echoNodeID :: Text}
 
-updateNode :: Node Body -> Body -> Node Body
-updateNode node (Init _ nodeID _) = node {Gleipnir.Node.nodeID = nodeID}
-updateNode node _ = node
+instance Node EchoNode Body where
+  genResponseBody _ (Init msgID _ _) = InitOk (genReplyID msgID) msgID
+  genResponseBody _ (Echo msgID echo) = EchoOk (genReplyID msgID) msgID echo
+  genResponseBody _ _ = Empty
+
+  updateState node (Init _ nodeID _) = node {echoNodeID = nodeID}
+  updateState node _ = node
 
 main :: IO ()
 main =
   do
-    start updateNode node
+    start node
   where
-    node = Node "" Main.genResponseBody
+    node = EchoNode ""
