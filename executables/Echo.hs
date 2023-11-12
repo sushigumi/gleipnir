@@ -2,17 +2,18 @@
 
 module Main (main) where
 
-import Data.Text
-import Data.Aeson (FromJSON, ToJSON, parseJSON, toJSON, Value (String), withObject, (.:), (.=), object)
+import Data.Aeson (FromJSON, ToJSON, Value (String), object, parseJSON, toJSON, withObject, (.:), (.=))
 import qualified Data.Aeson.KeyMap (lookup)
-import Gleipnir.Node (run, Node)
-import Gleipnir.Message (MessageBody, getInitNodeID)
+import Data.Text
+import Gleipnir.Message (MessageBody, genReplyID, getInitNodeID)
+import Gleipnir.Node (Node (..), start)
 
 data Body
   = Init {msgID :: Int, nodeID :: Text, nodeIDs :: [Text]}
   | InitOk {msgID :: Int, inReplyTo :: Int}
   | Echo {msgID :: Int, echo :: Text}
   | EchoOk {msgID :: Int, inReplyTo :: Int, echo :: Text}
+  | Empty
   deriving (Show)
 
 instance MessageBody Body where
@@ -30,17 +31,18 @@ instance ToJSON Body where
   toJSON (InitOk msgID inReplyTo) = object ["type" .= String "init_ok", "msg_id" .= msgID, "in_reply_to" .= inReplyTo]
   toJSON (EchoOk msgID inReplyTo echo) = object ["type" .= String "echo_ok", "msg_id" .= msgID, "in_reply_to" .= inReplyTo, "echo" .= echo]
 
-genNewReplyID :: Int -> Int
-genNewReplyID id = id + 1
+genResponseBody :: (MessageBody a) => Node a -> Body -> Body
+genResponseBody _ (Init msgID _ _) = InitOk (genReplyID msgID) msgID
+genResponseBody _ (Echo msgID echo) = EchoOk (genReplyID msgID) msgID echo
+genResponseBody _ _ = Empty
 
-genReply :: Node -> Body -> Maybe Body
-genReply _ (Init msgID _ _) = Just (InitOk (genNewReplyID msgID) msgID)
-genReply _ (Echo msgID echo) = Just (EchoOk (genNewReplyID msgID) msgID echo)
-genReply _ _ = Nothing
-
+updateNode :: Node Body -> Body -> Node Body
+updateNode node (Init _ nodeID _) = node {Gleipnir.Node.nodeID = nodeID}
+updateNode node _ = node
 
 main :: IO ()
 main =
   do
-    run genReply
-
+    start updateNode node
+  where
+    node = Node "" Main.genResponseBody

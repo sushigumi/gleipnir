@@ -30,3 +30,6 @@ instance (MessageBody a) => ToJSON (Message a) where
 load :: (MessageBody a) => Text -> Maybe (Message a)
 load input = decodeStrictText input :: ((MessageBody a) => Maybe (Message a))
 
+genReplyID :: Int -> Int
+genReplyID = (+) 1
+
