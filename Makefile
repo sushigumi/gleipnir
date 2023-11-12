@@ -25,3 +25,7 @@ run-unique-ids: gleipnir
 	@echo "+ $@"
 	@docker run --rm ${IMAGE_NAME}:${VERSION} test -w unique-ids --bin /app/gleipnir-unique-ids --time-limit 30 --rate 1000 --node-count 3 --availability total --nemesis partition
 
+run-broadcast: gleipnir
+	@echo "+ $@"
+	@docker run --rm ${IMAGE_NAME}:${VERSION} test -w broadcast --bin /app/gleipnir-broadcast --node-count 1 --time-limit 20 --rate 10
+

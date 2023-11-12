@@ -8,9 +8,10 @@ RUN cabal update \
 
 COPY ./src/ src/
 COPY ./executables executables/
-RUN cabal build gleipnir-echo gleipnir-unique-ids \
+RUN cabal build gleipnir-echo gleipnir-unique-ids gleipnir-broadcast \
     && mv $(cabal exec which gleipnir-echo) /app/gleipnir-echo \
-    && mv $(cabal exec which gleipnir-unique-ids) /app/gleipnir-unique-ids
+    && mv $(cabal exec which gleipnir-unique-ids) /app/gleipnir-unique-ids \
+    && mv $(cabal exec which gleipnir-broadcast) /app/gleipnir-broadcast
 
 FROM ${MAELSTROM_IMAGE}
 COPY --from=build-image /app/gleipnir* /app/
