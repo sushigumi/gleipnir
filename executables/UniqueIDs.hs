@@ -3,11 +3,12 @@
 
 module Main (main) where
 
+import Control.Monad.State (MonadState (put), StateT)
 import Data.Aeson (FromJSON, ToJSON, Value (String), object, parseJSON, toJSON, withObject, (.:), (.=))
 import qualified Data.Aeson.KeyMap (lookup)
 import Data.Text
-import Gleipnir.Message (MessageBody, genReplyID, getInitNodeID)
-import Gleipnir.Node (Node (..), start)
+import Gleipnir.Message (Message (Message), MessageBody, canReply, genReplyID, getInitNodeID)
+import Gleipnir.Node (Event (..), reply, start)
 
 data Body
   = Init {msgID :: Int, nodeID :: Text, nodeIDs :: [Text]}
@@ -19,6 +20,9 @@ data Body
 instance MessageBody Body where
   getInitNodeID (Init _ nodeID _) = Just nodeID
   getInitNodeID _ = Nothing
+
+  canReply Empty = False
+  canReply _ = True
 
 instance FromJSON Body where
   parseJSON = withObject "Body" $ \v ->
@@ -32,17 +36,25 @@ instance ToJSON Body where
 
 data UniqueNode = UniqueNode {uniqueNodeID :: Text}
 
-instance Node UniqueNode Body where
-  genResponseBody _ (Init msgID _ _) = InitOk (genReplyID msgID) msgID
-  genResponseBody node (Generate msgID) = GenerateOk (genReplyID msgID) msgID (uniqueNodeID node <> (pack . show) msgID)
-  genResponseBody _ _ = Empty
+genResponseBody :: UniqueNode -> Body -> Body
+genResponseBody _ (Init msgID _ _) = InitOk (genReplyID msgID) msgID
+genResponseBody node (Generate msgID) = GenerateOk (genReplyID msgID) msgID (uniqueNodeID node <> (pack . show) msgID)
+genResponseBody _ _ = Empty
 
-  updateState node (Init _ nodeID _) = node {uniqueNodeID = nodeID}
-  updateState node _ = node
+updateState :: UniqueNode -> Body -> UniqueNode
+updateState node (Init _ nodeID _) = node {uniqueNodeID = nodeID}
+updateState node _ = node
+
+handleEvent :: UniqueNode -> Event Body -> StateT UniqueNode IO ()
+handleEvent node (MessageReceived (Message src dst body)) = do
+  put (updateState node body)
+  reply response
+  where
+    responseBody = genResponseBody node body
+    response = Message dst src responseBody
+handleEvent _ _ = return ()
 
 main :: IO ()
-main =
-  do
-    start node
+main = start node handleEvent
   where
     node = UniqueNode ""

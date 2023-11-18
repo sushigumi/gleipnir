@@ -97,6 +97,7 @@ executable gleipnir-broadcast
       , text ^>=2.0.2
       , time ^>=1.12.2
       , unordered-containers ^>=0.2.19.1
+      , containers ^>=0.6.7
       , gleipnir
     hs-source-dirs:   executables
     default-language: Haskell2010

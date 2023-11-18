@@ -27,5 +27,5 @@ run-unique-ids: gleipnir
 
 run-broadcast: gleipnir
 	@echo "+ $@"
-	@docker run --rm ${IMAGE_NAME}:${VERSION} test -w broadcast --bin /app/gleipnir-broadcast --node-count 1 --time-limit 20 --rate 10
+	@docker run --rm ${IMAGE_NAME}:${VERSION} test -w broadcast --bin /app/gleipnir-broadcast --node-count 5 --time-limit 20 --rate 10 --nemesis partition
 

@@ -12,6 +12,7 @@ import Data.Text.IO
 
 class (FromJSON a, ToJSON a) => MessageBody a where
   getInitNodeID :: a -> Maybe Text
+  canReply :: a -> Bool
 
 data Message a = Message {src :: Text, dst :: Text, body :: a}
   deriving (Show)

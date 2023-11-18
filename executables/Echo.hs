@@ -3,11 +3,12 @@
 
 module Main (main) where
 
+import Control.Monad.State (StateT, put)
 import Data.Aeson (FromJSON, ToJSON, Value (String), object, parseJSON, toJSON, withObject, (.:), (.=))
 import qualified Data.Aeson.KeyMap (lookup)
 import Data.Text
-import Gleipnir.Message (MessageBody, genReplyID, getInitNodeID)
-import Gleipnir.Node (Node (..), start)
+import Gleipnir.Message (Message (..), MessageBody, canReply, genReplyID, getInitNodeID)
+import Gleipnir.Node (Event (..), reply, start)
 
 data Body
   = Init {msgID :: Int, nodeID :: Text, nodeIDs :: [Text]}
@@ -20,6 +21,9 @@ data Body
 instance MessageBody Body where
   getInitNodeID (Init _ nodeID _) = Just nodeID
   getInitNodeID _ = Nothing
+
+  canReply Empty = False
+  canReply _ = True
 
 instance FromJSON Body where
   parseJSON = withObject "Body" $ \v ->
@@ -34,17 +38,25 @@ instance ToJSON Body where
 
 data EchoNode = EchoNode {echoNodeID :: Text}
 
-instance Node EchoNode Body where
-  genResponseBody _ (Init msgID _ _) = InitOk (genReplyID msgID) msgID
-  genResponseBody _ (Echo msgID echo) = EchoOk (genReplyID msgID) msgID echo
-  genResponseBody _ _ = Empty
+genResponseBody :: EchoNode -> Body -> Body
+genResponseBody _ (Init msgID _ _) = InitOk (genReplyID msgID) msgID
+genResponseBody _ (Echo msgID echo) = EchoOk (genReplyID msgID) msgID echo
+genResponseBody _ _ = Empty
 
-  updateState node (Init _ nodeID _) = node {echoNodeID = nodeID}
-  updateState node _ = node
+updateState :: EchoNode -> Body -> EchoNode
+updateState node (Init _ nodeID _) = node {echoNodeID = nodeID}
+updateState node _ = node
+
+handleEvent :: EchoNode -> Event Body -> StateT EchoNode IO ()
+handleEvent node (MessageReceived (Message src dst body)) = do
+  put (updateState node body)
+  reply response
+  where
+    responseBody = genResponseBody node body
+    response = Message dst src responseBody
+handleEvent _ _ = return ()
 
 main :: IO ()
-main =
-  do
-    start node
+main = start node handleEvent
   where
     node = EchoNode ""

@@ -1,9 +1,7 @@
-{-# LANGUAGE FunctionalDependencies #-}
-
 module Gleipnir.Node where
 
-import Control.Concurrent (forkIO)
-import Control.Concurrent.Chan (newChan, readChan, writeChan, Chan)
+import Control.Concurrent (forkIO, threadDelay)
+import Control.Concurrent.Chan (Chan, newChan, readChan, writeChan)
 import Control.Monad (forever, when)
 import Control.Monad.State (StateT, evalStateT, get, lift, put)
 import Data.Aeson (FromJSON, ToJSON, encode)
@@ -13,12 +11,12 @@ import qualified Data.ByteString.Lazy.Char8 as LBC8 (hPutStrLn, putStrLn)
 import Data.Maybe (fromJust, isJust)
 import Data.Text
 import Data.Text.IO (getLine, hPutStrLn)
-import Gleipnir.Message (Message (..), MessageBody, body, getInitNodeID, load)
+import Gleipnir.Message (Message (..), MessageBody, body, getInitNodeID, load, canReply)
 import System.IO (BufferMode (LineBuffering), hPutStr, hPutStrLn, hSetBuffering, stderr, stdout)
 
-class (MessageBody b) => Node a b | a -> b where
-  genResponseBody :: a -> b -> b
-  updateState :: a -> b -> a
+data Event a 
+  = MessageReceived (Message a)
+  | GossipTriggered
 
 readMessage :: (MessageBody a) => IO (Maybe (Message a))
 readMessage =
@@ -28,38 +26,37 @@ readMessage =
     Data.Text.IO.hPutStrLn stderr input
     return (load input)
 
-printReply :: ByteString -> IO ()
-printReply output =
-  do
-    LBC8.putStrLn output
-    hPutStr stderr "Replied: "
-    LBC8.hPutStrLn stderr output
-
-genResponse :: (Node a b, MessageBody b) => a -> Message b -> Message b
-genResponse node (Message src dst body) = Message dst src responseBody
+reply :: (MessageBody b) => Message b -> StateT a IO ()
+reply message 
+  | canReply (body message) = (lift . printReply . encode) message
+  | otherwise = return ()
   where
-    responseBody = genResponseBody node body
+    printReply output = do
+      LBC8.putStrLn output
+      hPutStr stderr "Replied: "
+      LBC8.hPutStrLn stderr output
 
-run :: (Node a b, MessageBody b) => Chan (Message b) -> StateT a IO ()
-run ch = do 
+run :: (MessageBody b) => Chan (Event b) -> (a -> Event b -> StateT a IO ()) -> StateT a IO ()
+run ch handleEvent = do
   lift . forkIO $ forever $ do
     message <- readMessage
     when (isJust message) $ do
-      writeChan ch (fromJust message)
+      writeChan ch (MessageReceived (fromJust message))
+
+  lift . forkIO $ forever $ do
+    threadDelay 500000
+    writeChan ch GossipTriggered
 
   forever $ do
     node <- get
-    request <- lift (readChan ch)
-    put (updateState node (body request))
-    let response = genResponse node request
-    lift . printReply . encode $ response
-    return ()
+    event <- lift (readChan ch)
+    handleEvent node event
 
-start :: (Node a b, MessageBody b) => a -> IO ()
-start startState =
+start :: (MessageBody b) => a -> (a -> Event b -> StateT a IO ()) -> IO ()
+start startState handleEvent =
   do
     hSetBuffering stdout LineBuffering
     hSetBuffering stderr LineBuffering
     System.IO.hPutStrLn stderr "Starting server"
     ch <- newChan
-    evalStateT (run ch) startState
+    evalStateT (run ch handleEvent) startState
