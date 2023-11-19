@@ -10,10 +10,10 @@ import Data.Aeson (FromJSON, Object, ToJSON, Value (String), object, parseJSON, 
 import qualified Data.Aeson.KeyMap (lookup)
 import Data.HashMap.Lazy (HashMap, lookup)
 import Data.Maybe (fromJust)
-import Data.Set (Set, difference, empty, insert, null, union)
+import Data.Set (Set, difference, empty, insert, null, union, size)
 import Data.Text
 import Gleipnir.Message (Message (Message), MessageBody, canReply, genReplyID, getInitNodeID)
-import Gleipnir.Node (Event (..), reply, start, GossipType (..))
+import Gleipnir.Node (Event (..), GossipType (..), reply, start)
 
 data Body
   = Init {msgID :: Int, nodeID :: Text, nodeIDs :: [Text]}
@@ -80,8 +80,10 @@ handleEvent node ch (MessageReceived (Message src dst body)) = do
     responseBody = genResponseBody node body
     response = Message dst src responseBody
     gossip (Gossip _ messages)
-      | not (Data.Set.null (Data.Set.difference messages (savedMessages node))) = lift (writeChan ch (GossipTriggered Adhoc))
-    gossip _  = return ()
+      | size diff > 3 = lift (writeChan ch (GossipTriggered Adhoc))
+      where
+        diff = Data.Set.difference messages (savedMessages node)
+    gossip _ = return ()
 handleEvent node _ (GossipTriggered t) = do
   unless (Prelude.null messages) $
     mapM_ (\dst -> reply (Message src dst (Gossip 1 (savedMessages node)))) (neighbors node)
