@@ -4,6 +4,7 @@ module Main (main) where
 
 import Control.Concurrent (forkIO, threadDelay, writeChan)
 import Control.Concurrent.Chan (Chan, newChan)
+import Control.Monad (unless)
 import Control.Monad.State (MonadState (put), MonadTrans (lift), StateT, forever)
 import Data.Aeson (FromJSON, Object, ToJSON, Value (String), object, parseJSON, toJSON, withObject, (.:), (.=))
 import qualified Data.Aeson.KeyMap (lookup)
@@ -82,8 +83,10 @@ handleEvent node ch (MessageReceived (Message src dst body)) = do
       | not (Data.Set.null (Data.Set.difference messages (savedMessages node))) = lift (writeChan ch (GossipTriggered Adhoc))
     gossip _  = return ()
 handleEvent node _ (GossipTriggered t) = do
-  mapM_ (\dst -> reply (Message src dst (Gossip 1 (savedMessages node)))) (neighbors node)
+  unless (Prelude.null messages) $
+    mapM_ (\dst -> reply (Message src dst (Gossip 1 (savedMessages node)))) (neighbors node)
   where
+    messages = savedMessages node
     src = broadcastNodeID node
 
 main :: IO ()

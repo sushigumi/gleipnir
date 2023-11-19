@@ -46,7 +46,7 @@ run ch handleEvent = do
       writeChan ch (MessageReceived (fromJust message))
 
   lift . forkIO $ forever $ do
-    threadDelay 500000
+    threadDelay 1000000
     writeChan ch (GossipTriggered Timed)
 
   forever $ do
