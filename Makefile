@@ -19,7 +19,7 @@ gleipnir:
 
 run-echo: gleipnir
 	@echo "+ $@"
-	@docker run --rm -it -p 20000:8080 ${IMAGE_NAME}:${VERSION} test -w echo --bin /app/gleipnir-echo --nodes n1 --time-limit 10 --log-stderr
+	@docker run --rm -it -p 20000:8080 ${IMAGE_NAME}:${VERSION} test -w echo --bin /app/gleipnir-echo --nodes n1 --time-limit 10
 
 run-unique-ids: gleipnir
 	@echo "+ $@"

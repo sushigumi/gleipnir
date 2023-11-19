@@ -15,6 +15,7 @@ import Data.Text
 import Gleipnir.Message (Message (Message), MessageBody, canReply, genReplyID, getInitNodeID)
 import Gleipnir.Node (Event (..), GossipType (..), reply, start)
 
+-- | Body of the message that can be received.
 data Body
   = Init {msgID :: Int, nodeID :: Text, nodeIDs :: [Text]}
   | InitOk {msgID :: Int, inReplyTo :: Int}
@@ -54,9 +55,11 @@ instance ToJSON Body where
   toJSON (Gossip msgID messages) = object ["type" .= String "gossip", "msg_id" .= msgID, "messages" .= messages]
   toJSON _ = error "Invalid Operation"
 
+-- | Holds the state of the node.
 data BroadcastNode = BroadcastNode {broadcastNodeID :: Text, savedMessages :: Set Int, neighbors :: [Text]}
   deriving (Show)
 
+-- | Generate a response body based on the state and the request body.
 genResponseBody :: BroadcastNode -> Body -> Body
 genResponseBody _ (Init msgID _ _) = InitOk (genReplyID msgID) msgID
 genResponseBody node (Broadcast msgID _) = BroadcastOk (genReplyID msgID) msgID
@@ -64,6 +67,7 @@ genResponseBody node (Read msgID) = ReadOk (genReplyID msgID) msgID (savedMessag
 genResponseBody _ (Topology msgID _) = TopologyOk (genReplyID msgID) msgID
 genResponseBody _ _ = Empty
 
+-- | Update the state of the node based on the request body.
 updateState :: BroadcastNode -> Body -> BroadcastNode
 updateState node (Init _ nodeID _) = node {broadcastNodeID = nodeID}
 updateState node (Broadcast _ message) = node {savedMessages = Data.Set.insert message (savedMessages node)}
@@ -71,6 +75,7 @@ updateState node (Topology _ topology) = node {neighbors = fromJust (Data.HashMa
 updateState node (Gossip _ messages) = node {savedMessages = Data.Set.union messages (savedMessages node)}
 updateState node _ = node
 
+-- | Event handler for request messages.
 handleEvent :: BroadcastNode -> Chan (Event Body) -> Event Body -> StateT BroadcastNode IO ()
 handleEvent node ch (MessageReceived (Message src dst body)) = do
   gossip body

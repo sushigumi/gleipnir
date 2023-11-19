@@ -24,13 +24,10 @@ instance (MessageBody a) => FromJSON (Message a) where
 instance (MessageBody a) => ToJSON (Message a) where
   toJSON (Message src dst body) = object ["src" .= src, "dest" .= dst, "body" .= body]
 
---------------------------------------------------------------------------------
--- Functions
---------------------------------------------------------------------------------
-
+-- | Decode the text into a Message type.
 load :: (MessageBody a) => Text -> Maybe (Message a)
 load input = decodeStrictText input :: ((MessageBody a) => Maybe (Message a))
 
+-- | Generate a reply message ID based on the request message ID.
 genReplyID :: Int -> Int
 genReplyID = (+) 1
-

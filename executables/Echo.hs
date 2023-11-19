@@ -11,6 +11,7 @@ import Data.Text
 import Gleipnir.Message (Message (..), MessageBody, canReply, genReplyID, getInitNodeID)
 import Gleipnir.Node (Event (..), reply, start)
 
+-- | Body of the message that can be received.
 data Body
   = Init {msgID :: Int, nodeID :: Text, nodeIDs :: [Text]}
   | InitOk {msgID :: Int, inReplyTo :: Int}
@@ -37,17 +38,21 @@ instance ToJSON Body where
   toJSON (InitOk msgID inReplyTo) = object ["type" .= String "init_ok", "msg_id" .= msgID, "in_reply_to" .= inReplyTo]
   toJSON (EchoOk msgID inReplyTo echo) = object ["type" .= String "echo_ok", "msg_id" .= msgID, "in_reply_to" .= inReplyTo, "echo" .= echo]
 
+-- | Holds the state of the node.
 data EchoNode = EchoNode {echoNodeID :: Text}
 
+-- | Generate a response body based on the state and the request body.
 genResponseBody :: EchoNode -> Body -> Body
 genResponseBody _ (Init msgID _ _) = InitOk (genReplyID msgID) msgID
 genResponseBody _ (Echo msgID echo) = EchoOk (genReplyID msgID) msgID echo
 genResponseBody _ _ = Empty
 
+-- | Update the state of the node based on the request body.
 updateState :: EchoNode -> Body -> EchoNode
 updateState node (Init _ nodeID _) = node {echoNodeID = nodeID}
 updateState node _ = node
 
+-- | Event handler for request messages.
 handleEvent :: EchoNode -> Chan (Event Body) -> Event Body -> StateT EchoNode IO ()
 handleEvent node ch (MessageReceived (Message src dst body)) = do
   put (updateState node body)

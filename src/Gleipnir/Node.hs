@@ -20,6 +20,7 @@ data Event a
   = MessageReceived (Message a)
   | GossipTriggered GossipType
 
+-- | Reads a message from stdin.
 readMessage :: (MessageBody a) => IO (Maybe (Message a))
 readMessage =
   do
@@ -28,6 +29,7 @@ readMessage =
     Data.Text.IO.hPutStrLn stderr input
     return (load input)
 
+-- | Writes the message to stdout.
 reply :: (MessageBody b) => Message b -> StateT a IO ()
 reply message 
   | canReply (body message) = (lift . printReply . encode) message
@@ -38,6 +40,7 @@ reply message
       hPutStr stderr "Replied: "
       LBC8.hPutStrLn stderr output
 
+-- | Starts several threads in order to service requests from stdin.
 run :: (MessageBody b) => Chan (Event b) -> (a -> Chan (Event b) -> Event b -> StateT a IO ()) -> StateT a IO ()
 run ch handleEvent = do
   lift . forkIO $ forever $ do
@@ -54,6 +57,7 @@ run ch handleEvent = do
     event <- lift (readChan ch)
     handleEvent node ch event
 
+-- | Start the server and sets line buffering option.
 start :: (MessageBody b) => a -> (a -> Chan (Event b) -> Event b -> StateT a IO ()) -> IO ()
 start startState handleEvent =
   do
