@@ -29,3 +29,7 @@ run-broadcast: gleipnir
 	@echo "+ $@"
 	@docker run --rm -it -p 20000:8080 ${IMAGE_NAME}:${VERSION} test -w broadcast --bin /app/gleipnir-broadcast --node-count 25 --time-limit 20 --rate 100 --latency 100
 
+run-broadcast-partition: gleipnir
+	@echo "+ $@"
+	@docker run --rm -it -p 20000:8080 ${IMAGE_NAME}:${VERSION} test -w broadcast --bin /app/gleipnir-broadcast --node-count 25 --time-limit 20 --rate 100 --latency 100 --nemesis partition
+

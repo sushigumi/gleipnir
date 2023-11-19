@@ -1,6 +1,10 @@
 The [fly.io distributed systems challenges](https://fly.io/dist-sys/) solved in Haskell.
 Uses [maelstrom](https://github.com/jepsen-io/maelstrom/tree/main) as the workbench for running test workloads on our Haskell programs.
 
+## Running
+Running the programs through `make` has a dependency on `docker`.
+Once the test workload has completed, results will be available on `stdout` as well as hosted on `localhost:20000`.
+
 ## Programs
 ### Echo.hs
 A simple server that takes in an echo message and writes the same message back.
