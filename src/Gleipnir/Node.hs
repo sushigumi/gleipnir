@@ -14,9 +14,11 @@ import Data.Text.IO (getLine, hPutStrLn)
 import Gleipnir.Message (Message (..), MessageBody, body, getInitNodeID, load, canReply)
 import System.IO (BufferMode (LineBuffering), hPutStr, hPutStrLn, hSetBuffering, stderr, stdout)
 
+data GossipType = Timed | Adhoc
+
 data Event a 
   = MessageReceived (Message a)
-  | GossipTriggered
+  | GossipTriggered GossipType
 
 readMessage :: (MessageBody a) => IO (Maybe (Message a))
 readMessage =
@@ -36,7 +38,7 @@ reply message
       hPutStr stderr "Replied: "
       LBC8.hPutStrLn stderr output
 
-run :: (MessageBody b) => Chan (Event b) -> (a -> Event b -> StateT a IO ()) -> StateT a IO ()
+run :: (MessageBody b) => Chan (Event b) -> (a -> Chan (Event b) -> Event b -> StateT a IO ()) -> StateT a IO ()
 run ch handleEvent = do
   lift . forkIO $ forever $ do
     message <- readMessage
@@ -45,14 +47,14 @@ run ch handleEvent = do
 
   lift . forkIO $ forever $ do
     threadDelay 500000
-    writeChan ch GossipTriggered
+    writeChan ch (GossipTriggered Timed)
 
   forever $ do
     node <- get
     event <- lift (readChan ch)
-    handleEvent node event
+    handleEvent node ch event
 
-start :: (MessageBody b) => a -> (a -> Event b -> StateT a IO ()) -> IO ()
+start :: (MessageBody b) => a -> (a -> Chan (Event b) -> Event b -> StateT a IO ()) -> IO ()
 start startState handleEvent =
   do
     hSetBuffering stdout LineBuffering

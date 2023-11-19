@@ -9,6 +9,7 @@ import qualified Data.Aeson.KeyMap (lookup)
 import Data.Text
 import Gleipnir.Message (Message (Message), MessageBody, canReply, genReplyID, getInitNodeID)
 import Gleipnir.Node (Event (..), reply, start)
+import Control.Concurrent.Chan (Chan)
 
 data Body
   = Init {msgID :: Int, nodeID :: Text, nodeIDs :: [Text]}
@@ -45,14 +46,14 @@ updateState :: UniqueNode -> Body -> UniqueNode
 updateState node (Init _ nodeID _) = node {uniqueNodeID = nodeID}
 updateState node _ = node
 
-handleEvent :: UniqueNode -> Event Body -> StateT UniqueNode IO ()
-handleEvent node (MessageReceived (Message src dst body)) = do
+handleEvent :: UniqueNode -> Chan (Event Body) -> Event Body -> StateT UniqueNode IO ()
+handleEvent node ch (MessageReceived (Message src dst body)) = do
   put (updateState node body)
   reply response
   where
     responseBody = genResponseBody node body
     response = Message dst src responseBody
-handleEvent _ _ = return ()
+handleEvent _ _ _ = return ()
 
 main :: IO ()
 main = start node handleEvent

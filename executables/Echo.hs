@@ -3,6 +3,7 @@
 
 module Main (main) where
 
+import Control.Concurrent.Chan (Chan)
 import Control.Monad.State (StateT, put)
 import Data.Aeson (FromJSON, ToJSON, Value (String), object, parseJSON, toJSON, withObject, (.:), (.=))
 import qualified Data.Aeson.KeyMap (lookup)
@@ -47,14 +48,14 @@ updateState :: EchoNode -> Body -> EchoNode
 updateState node (Init _ nodeID _) = node {echoNodeID = nodeID}
 updateState node _ = node
 
-handleEvent :: EchoNode -> Event Body -> StateT EchoNode IO ()
-handleEvent node (MessageReceived (Message src dst body)) = do
+handleEvent :: EchoNode -> Chan (Event Body) -> Event Body -> StateT EchoNode IO ()
+handleEvent node ch (MessageReceived (Message src dst body)) = do
   put (updateState node body)
   reply response
   where
     responseBody = genResponseBody node body
     response = Message dst src responseBody
-handleEvent _ _ = return ()
+handleEvent _ _ _ = return ()
 
 main :: IO ()
 main = start node handleEvent
